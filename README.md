@@ -3,8 +3,6 @@
 A library for connecting to the Elucidat API.
 Find out more about Elucidat at [www.elucidat.com](https://www.elucidat.com/)
 
-To use the library, 
-
 ## Installation
 Using npm:
 ```
