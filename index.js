@@ -17,12 +17,12 @@ function callElucidat(options, callback) {
         options.consumer_secret, 
         Object.assign(options.headers, options.fields || {}), 
         options.method, 
-        options.protocol+options.hostname+options.path
+        options.protocol+options.hostname+'/v'+(options.version)+'/'+options.path
     );
     // and put the request together
     const requestOptions = {
         hostname: options.hostname,
-        path: options.path + (options.method === 'GET' && options.fields ? '?'+buildBaseString(options.fields, '&') : '' ),
+        path: '/v'+(options.version)+'/'+options.path + (options.method === 'GET' && options.fields ? '?'+buildBaseString(options.fields, '&') : '' ),
         method: options.method,
         headers: {
             'Authorization': buildBaseString(options.headers, ',')
@@ -30,16 +30,16 @@ function callElucidat(options, callback) {
     };
     // now do the request
     https.request(requestOptions, (res) => {
-        // console.log('statusCode:', res.statusCode);
-        // console.log('headers:', res.headers);
-        res.on('data', (d) => {
-            callback(res.statusCode, JSON.parse(d));
-        });
-        
+        if (res.statusCode !== 200) {
+            callback(res.statusCode, 'Error...');
+        } else {
+            res.on('data', (d) => {
+                callback(res.statusCode, JSON.parse(d));
+            });
+        }
     }).on('error', (e) => {
         callback(400, e.message);
     }).end();
-    
 }
 
 /**
@@ -118,13 +118,15 @@ function authHeaders(consumer_key, nonce = '') {
  * @param consumer_secret
  * @return bool
  */
-function getNonce(options, callback) {
+function getNonce(params, callback) {
     const requestOptions = {
-        protocol: options.protocol,
-        headers: authHeaders(options.consumer_key),
-        hostname: options.hostname,
-        path: options.path,
-        consumer_secret: options.consumer_secret
+        protocol: params.protocol,
+        hostname: params.hostname,
+        version: params.version,
+        path: params.path,
+        method: params.method || 'GET',
+        headers: authHeaders(params.consumer_key),
+        consumer_secret: params.consumer_secret
     };
     //Make a request to elucidat for a nonce...any url is fine providing it doesnt already have a nonce
     callElucidat(requestOptions, callback);
@@ -137,7 +139,8 @@ module.exports = function(params, callback) {
     const parameters = {
         protocol: params.protocol || 'https://',
         hostname: params.hostname || 'api.elucidat.com',
-        path: params.path || '/v2/projects',
+        version: params.version || 2,
+        path: params.path || 'projects',
         method: params.method || 'GET',
         consumer_key: params.consumer_key || '',
         consumer_secret: params.consumer_secret || '',

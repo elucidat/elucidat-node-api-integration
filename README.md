@@ -15,7 +15,7 @@ An example for returning the HTML of a course using Node.js:
 const elucidatAPI = require('elucidat-api');
 
 const parameters = {
-    path: '/v2/releases/launch',
+    path: 'releases/launch',
     consumer_key: '',
     consumer_secret: '',
     fields: {
