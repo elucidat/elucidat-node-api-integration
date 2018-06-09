@@ -12,7 +12,9 @@ $ npm install elucidat-api
 ## Usage
 An example for returning the HTML of a course using Node.js:
 ```
+
 const elucidatAPI = require('elucidat-api');
+const https = require('https');
 
 const parameters = {
     path: 'releases/launch',
