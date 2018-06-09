@@ -1,3 +1,4 @@
+"use strict"
 
 const https = require('https');
 const crypto = require('crypto');
@@ -11,20 +12,18 @@ const crypto = require('crypto');
  * @return mixed
  */
 function callElucidat(options, callback) {
-    
-    const method = options.method || 'GET';
     // build the signature
     options.headers['oauth_signature'] = buildSignature(
         options.consumer_secret, 
         Object.assign(options.headers, options.fields || {}), 
-        method, 
+        options.method, 
         options.protocol+options.hostname+options.path
     );
     // and put the request together
     const requestOptions = {
         hostname: options.hostname,
-        path: options.path + (method === 'GET' && options.fields ? '?'+buildBaseString(options.fields, '&') : '' ),
-        method: method,
+        path: options.path + (options.method === 'GET' && options.fields ? '?'+buildBaseString(options.fields, '&') : '' ),
+        method: options.method,
         headers: {
             'Authorization': buildBaseString(options.headers, ',')
         }
@@ -134,18 +133,17 @@ function getNonce(options, callback) {
 /* 
  *
  */
-exports.elucidatAPI = function(params, callback) {
-
+module.exports = function(params, callback) {
     const parameters = {
         protocol: params.protocol || 'https://',
         hostname: params.hostname || 'api.elucidat.com',
         path: params.path || '/v2/projects',
+        method: params.method || 'GET',
         consumer_key: params.consumer_key || '',
         consumer_secret: params.consumer_secret || '',
         fields: params.fields || {}
     };
-    
-    getNonce(parameters, function (nonceResponse) {
+    getNonce(parameters, function (statusCode, nonceResponse) {
         if (nonceResponse.nonce) {
             // console.log(nonceResponse);
             parameters.headers = authHeaders(parameters.consumer_key, nonceResponse.nonce);
@@ -155,5 +153,4 @@ exports.elucidatAPI = function(params, callback) {
             callback(403, 'Error getting nonce...');
         }
     });
-
-}
+};
