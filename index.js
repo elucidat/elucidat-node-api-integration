@@ -150,7 +150,9 @@ module.exports = function(params, callback) {
         if (nonceResponse.nonce) {
             // console.log(nonceResponse);
             parameters.headers = authHeaders(parameters.consumer_key, nonceResponse.nonce);
-            setTimeout(callElucidat(parameters, callback), 250);
+            setTimeout(function(){
+                callElucidat(parameters, callback);
+            }, 250);
             
         } else {
             callback(403, 'Error getting nonce...');
