@@ -152,7 +152,8 @@ module.exports = function(params, callback) {
             parameters.headers = authHeaders(parameters.consumer_key, nonceResponse.nonce);
             setTimeout(function(){
                 callElucidat(parameters, callback);
-            }, 250);
+            }, 500);
+            //500ms is the most ioan is ok with the db being behind
             
         } else {
             callback(403, 'Error getting nonce...');
