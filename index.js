@@ -155,11 +155,15 @@ module.exports = function(params, callback) {
                 // give a little breathing room in case of high traffic
                 callElucidat(parameters).then(response => {
                     callback(response.status, response.data);
+                }).catch(error => {
+                    callback(error.response.status, error.response.data);
                 });
             }, 500);
             
         } else {
             callback(403, 'Error getting nonce...');
         }
+    }).catch(error => {
+        callback(error.response.status, error.response.data);
     });
 };
