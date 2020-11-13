@@ -2,6 +2,7 @@
 
 const axios = require('axios').default;
 const crypto = require('crypto');
+const qs = require('qs');
 
 /**
  * Makes an API request to elucidat
@@ -14,11 +15,13 @@ const crypto = require('crypto');
 async function callElucidat(options, callback) {
 
     const baseURL = options.protocol+options.hostname+(options.port !== 443 ? ':'+options.port : '')+'/v'+(options.version)+'/'+options.path;
-
+    const headersAndFields = {};
+    Object.assign(headersAndFields, options.headers);
+    Object.assign(headersAndFields, options.fields || {});
     // build the signature
     options.headers['oauth_signature'] = buildSignature(
         options.consumer_secret, 
-        Object.assign(options.headers, options.fields || {}), 
+        headersAndFields, 
         options.method, 
         baseURL
     );
@@ -34,9 +37,9 @@ async function callElucidat(options, callback) {
 
     // add POST vars if there are some
     if (options.method !== 'GET') {
-        options.params = options.fields;
+        requestOptions.data = qs.stringify(options.fields);
     }
-    
+
     // now do the request
     return axios(requestOptions);
 
