@@ -1,6 +1,6 @@
 "use strict"
 
-const https = require('https');
+const axios = require('axios').default;
 const crypto = require('crypto');
 
 /**
@@ -11,35 +11,35 @@ const crypto = require('crypto');
  * @param consumer_secret
  * @return mixed
  */
-function callElucidat(options, callback) {
+async function callElucidat(options, callback) {
+
+    const baseURL = options.protocol+options.hostname+(options.port !== 443 ? ':'+options.port : '')+'/v'+(options.version)+'/'+options.path;
+
     // build the signature
     options.headers['oauth_signature'] = buildSignature(
         options.consumer_secret, 
         Object.assign(options.headers, options.fields || {}), 
         options.method, 
-        options.protocol+options.hostname+'/v'+(options.version)+'/'+options.path
+        baseURL
     );
+
     // and put the request together
     const requestOptions = {
-        hostname: options.hostname,
-        path: '/v'+(options.version)+'/'+options.path + (options.method === 'GET' && options.fields ? '?'+buildBaseString(options.fields, '&') : '' ),
+        url: baseURL + (options.method === 'GET' && options.fields ? '?'+buildBaseString(options.fields, '&') : '' ),
         method: options.method,
         headers: {
             'Authorization': buildBaseString(options.headers, ',')
         }
     };
+
+    // add POST vars if there are some
+    if (options.method !== 'GET') {
+        options.params = options.fields;
+    }
+    
     // now do the request
-    https.request(requestOptions, (res) => {
-        if (res.statusCode !== 200) {
-            callback(res.statusCode, 'Error...');
-        } else {
-            res.on('data', (d) => {
-                callback(res.statusCode, JSON.parse(d));
-            });
-        }
-    }).on('error', (e) => {
-        callback(400, e.message);
-    }).end();
+    return axios(requestOptions);
+
 }
 
 /**
@@ -118,18 +118,19 @@ function authHeaders(consumer_key, nonce = '') {
  * @param consumer_secret
  * @return bool
  */
-function getNonce(params, callback) {
+async function getNonce(params, callback) {
     const requestOptions = {
         protocol: params.protocol,
         hostname: params.hostname,
         version: params.version,
         path: params.path,
+        port: params.port,
         method: params.method || 'GET',
         headers: authHeaders(params.consumer_key),
         consumer_secret: params.consumer_secret
     };
     //Make a request to elucidat for a nonce...any url is fine providing it doesnt already have a nonce
-    callElucidat(requestOptions, callback);
+    return callElucidat(requestOptions, callback);
 }
 
 /* 
@@ -139,6 +140,7 @@ module.exports = function(params, callback) {
     const parameters = {
         protocol: params.protocol || 'https://',
         hostname: params.hostname || 'api.elucidat.com',
+        port: params.port || 443,
         version: params.version || 2,
         path: params.path || 'projects',
         method: params.method || 'GET',
@@ -146,14 +148,15 @@ module.exports = function(params, callback) {
         consumer_secret: params.consumer_secret || '',
         fields: params.fields || {}
     };
-    getNonce(parameters, function (statusCode, nonceResponse) {
-        if (nonceResponse.nonce) {
-            // console.log(nonceResponse);
+    getNonce(parameters).then(nonceResponse => {
+        if (nonceResponse.data.nonce) {
             parameters.headers = authHeaders(parameters.consumer_key, nonceResponse.nonce);
             setTimeout(function(){
-                callElucidat(parameters, callback);
+                // give a little breathing room in case of high traffic
+                callElucidat(parameters, callback).then(response => {
+                    callback(response.status, response.data);
+                });
             }, 500);
-            //500ms is the most ioan is ok with the db being behind
             
         } else {
             callback(403, 'Error getting nonce...');
