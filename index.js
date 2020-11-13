@@ -150,10 +150,10 @@ module.exports = function(params, callback) {
     };
     getNonce(parameters).then(nonceResponse => {
         if (nonceResponse.data.nonce) {
-            parameters.headers = authHeaders(parameters.consumer_key, nonceResponse.nonce);
+            parameters.headers = authHeaders(parameters.consumer_key, nonceResponse.data.nonce);
             setTimeout(function(){
                 // give a little breathing room in case of high traffic
-                callElucidat(parameters, callback).then(response => {
+                callElucidat(parameters).then(response => {
                     callback(response.status, response.data);
                 });
             }, 500);
